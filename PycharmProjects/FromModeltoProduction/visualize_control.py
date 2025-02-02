@@ -17,8 +17,9 @@ def boxplot_scaled_variable():
 	plt.boxplot([df[feature] for feature in features], vert=False, patch_artist=True)
 
 	# Add labels for each boxplot
-	plt.yticks(range(1, len(features) + 1), features)  # Align feature names with boxplots
-	plt.title("Boxplot of Multiple Features")
+	plt.yticks(range(1, len(features) + 1), features, rotation=45)  # Align feature names with boxplots
+	plt.subplots_adjust(left=0.2)
+	plt.title("Boxplot of Sound Volume, scaled Temperature & scaled Humidity")
 	plt.xlabel("Scaled Values")
 	plt.grid(axis="x", linestyle="--", alpha=0.7)
 
@@ -48,7 +49,7 @@ def plot_dataframe(df):
 	# Set labels and title
 	plt.xlabel("Date")
 	plt.ylabel("Value")
-	plt.title("Sound Volume, Scaled Temperature & Humidity (Past 2 Days)")
+	plt.title("Sound Volume, Temperature & Humidity (scaled and unscaled)")
 	# Add legend
 	plt.legend()
 	# Rotate x-axis labels for better readability with many data points
@@ -83,13 +84,18 @@ def plot_anomalies(df, anomaly_counts_per_day):
 	plt.legend()
 	plt.show()
 
+	# If anomaly_counts_per_day is dict, convert it back into a series
+	if isinstance(anomaly_counts_per_day, dict):
+		anomaly_counts_per_day = pd.Series(anomaly_counts_per_day)
+
 	# Bar Plot of Anomalies per Day
 	plt.figure(figsize=(10, 6))
 	anomaly_counts_per_day.plot(kind="bar", color="red", alpha=0.7)
 	plt.title("Daily Anomalies Tag")
 	plt.xlabel("Date")
 	plt.ylabel("Number of Anomalies")
-	plt.xticks(rotation=45)
+	plt.xticks(ticks=range(0, len(anomaly_counts_per_day), 4),
+			   labels=anomaly_counts_per_day.index[::4], rotation=45)
 	plt.grid(axis="y", linestyle="--", alpha=0.7)
 	plt.tight_layout()
 	plt.show()
