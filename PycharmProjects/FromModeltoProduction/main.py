@@ -1,5 +1,6 @@
 import pandas as pd
 import pickle
+import os
 from fetch_data import *
 from visualize_control import *
 from datetime import datetime, timedelta
@@ -27,9 +28,9 @@ df = pd.read_csv(csv_file)
 
 # Detect Anomalies and save to Pickle File
 def detect_anomalies(df, feature_columns,
-					 contamination=0.01,
+					 contamination=0.10,
 					 random_state=42,
-					 output_pickle_file="isolation_forest_model.pkl"):
+					 output_pickle_file="results.pkl"):
 	"""
 	    Detect anomalies in the given DataFrame using the Isolation Forest algorithm.
 
@@ -47,7 +48,7 @@ def detect_anomalies(df, feature_columns,
 	X = df[feature_columns]
 
 	# Create Isolation Forest Model
-	isolation_forest = IsolationForest(n_estimators=100, contamination=contamination, random_state=random_state)
+	isolation_forest = IsolationForest(n_estimators=200, contamination=contamination, random_state=random_state)
 	df["anomaly_score"] = isolation_forest.fit_predict(X)  # -1 for anomalies, 1 for normal
 
 	# Group for date and show accumulation
@@ -56,40 +57,42 @@ def detect_anomalies(df, feature_columns,
 	anomalies.loc[:, "date"] = anomalies["timestamp"].dt.date  # Extract the Date
 	anomaly_counts_per_day = anomalies.groupby("date").size()
 
+
 	#Integrate statistical measures
 	silhouette = silhouette_score(X, isolation_forest.predict(X))
 	# Silhouette Score -1 (incorrect clustering) to +1 (well-clustered), with 0 indicating overlapping clusters
 
 	print(f"Silhouette Score: {silhouette:.4f}")
 
+	# Convert date keys to strings
+	anomaly_counts_per_day = {str(date): count for date, count in anomaly_counts_per_day.items()}
+
 	# Save results to a pickle file
 	results = {
-		"anomalies": anomalies,
+		"anomalies": anomalies.to_dict(orient="records"),
 		"anomaly_counts_per_day": anomaly_counts_per_day,
+		"silhouette_score": round(silhouette, 4),
 	}
+
+	if os.path.exists("results.pkl"):
+		os.remove("results.pkl")
 
 	with open(output_pickle_file, "wb") as file:
 		pickle.dump(results, file)
 
 	print(f"Results saved to {output_pickle_file}")
-	return anomalies, anomaly_counts_per_day
+	return results
 
 # Example usage
 feature_columns = ["temperature_2m_scaled", "relative_humidity_2m_scaled", "sound_volume"]
-anomalies, anomaly_counts_per_day = detect_anomalies(df, feature_columns)
+results = detect_anomalies(df, feature_columns)
+#anomalies = results["anomalies"]
+anomaly_counts_per_day = results["anomaly_counts_per_day"]
 
 
 # Plot boxplots and dataframes to see an overview of the data
-#plot_dataframe(df)
-#boxplot_scaled_variable()
-#plot_normal_and_anomalies(df)
-#plot_anomalies(df, anomaly_counts_per_day)
-#plot_anomaly_score_distribution(df)
-
-
-
-
-# Ich nutze jetzt schon Flask und präsentiere meinen Code da
-# Testen mit Beispielen von ChatGPT, ob mein Model richtig klassifiziert
-# Etwas verbessern
-# In die Cloud laden
+plot_dataframe(df)
+boxplot_scaled_variable()
+plot_normal_and_anomalies(df)
+plot_anomalies(df, anomaly_counts_per_day)
+plot_anomaly_score_distribution(df)
